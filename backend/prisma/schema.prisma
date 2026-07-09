@@ -1,0 +1,140 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  MEMBER
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  DOCUMENT
+}
+
+model Member {
+  id                 String              @id @default(uuid())
+  email              String              @unique
+  passwordHash       String
+  profilePictureUrl  String?
+  bio                String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  spaceMemberships   SpaceMembership[]
+  memoriesCreated    Memory[]
+}
+
+model FamilySpace {
+  id           String              @id @default(uuid())
+  name         String
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  storageLimit BigInt              @default(5368709120)
+  storageUsed  BigInt              @default(0)
+  memberships  SpaceMembership[]
+  events       Event[]
+  albums       Album[]
+  memories     Memory[]
+  invitations  SpaceInvitation[]
+}
+
+model SpaceMembership {
+  id            String      @id @default(uuid())
+  memberId      String
+  familySpaceId String
+  role          Role        @default(MEMBER)
+  joinedAt      DateTime    @default(now())
+  member        Member      @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  familySpace   FamilySpace @relation(fields: [familySpaceId], references: [id], onDelete: Cascade)
+
+  @@unique([memberId, familySpaceId])
+}
+
+model SpaceInvitation {
+  id            String      @id @default(uuid())
+  familySpaceId String
+  email         String
+  token         String      @unique
+  role          Role        @default(MEMBER)
+  expiresAt     DateTime
+  createdAt     DateTime    @default(now())
+  familySpace   FamilySpace @relation(fields: [familySpaceId], references: [id], onDelete: Cascade)
+}
+
+model Event {
+  id            String      @id @default(uuid())
+  familySpaceId String
+  title         String
+  date          DateTime
+  location      String?
+  description   String?
+  coverImageUrl String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  familySpace   FamilySpace @relation(fields: [familySpaceId], references: [id], onDelete: Cascade)
+  memories      Memory[]
+}
+
+model Memory {
+  id            String      @id @default(uuid())
+  familySpaceId String
+  eventId       String?
+  authorId      String
+  title         String
+  richTextStory String
+  dateOccurred  DateTime
+  location      String?
+  isFavorite    Boolean     @default(false)
+  isArchived    Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  familySpace   FamilySpace @relation(fields: [familySpaceId], references: [id], onDelete: Cascade)
+  event         Event?      @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  author        Member      @relation(fields: [authorId], references: [id])
+  media         Media[]
+  albums        AlbumMemory[]
+}
+
+model Media {
+  id        String    @id @default(uuid())
+  memoryId  String
+  fileUrl   String
+  fileType  MediaType
+  size      Int
+  createdAt DateTime  @default(now())
+  memory    Memory    @relation(fields: [memoryId], references: [id], onDelete: Cascade)
+}
+
+model Album {
+  id            String        @id @default(uuid())
+  familySpaceId String
+  title         String
+  description   String?
+  coverImageUrl String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  familySpace   FamilySpace   @relation(fields: [familySpaceId], references: [id], onDelete: Cascade)
+  memories      AlbumMemory[]
+}
+
+model ServerSession {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+}
+
+model AlbumMemory {
+  albumId  String
+  memoryId String
+  album    Album  @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  memory   Memory @relation(fields: [memoryId], references: [id], onDelete: Cascade)
+
+  @@id([albumId, memoryId])
+}
