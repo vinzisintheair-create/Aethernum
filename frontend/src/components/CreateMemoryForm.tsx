@@ -5,7 +5,7 @@ import { Input } from './ui/Input';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
 import api from '../utils/api';
-import { Image as ImageIcon, Loader2, Video, CheckCircle } from 'lucide-react';
+import { Loader2, Video, CheckCircle } from 'lucide-react';
 
 interface CreateMemoryFormProps {
   onSuccess?: () => void;
@@ -43,6 +43,14 @@ export default function CreateMemoryForm({ onSuccess }: CreateMemoryFormProps) {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
 
+        // Convert file to base64 Data URL for real rendering
+        const base64Data = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+
         // 1. Request upload ticket/signature from backend
         const ticketResponse = await api.post<{
           uploadUrl: string;
@@ -60,11 +68,12 @@ export default function CreateMemoryForm({ onSuccess }: CreateMemoryFormProps) {
 
         // 2. Simulate binary upload execution to the R2 signed URL
         setUploadStatus(`Uploading & optimizing ${file.name}...`);
-        await new Promise((resolve) => setTimeout(resolve, 1500)); // Simulated network lag
+        await new Promise((resolve) => setTimeout(resolve, 800)); // Simulated network lag
 
         // 3. Log into local media list state to bundle into memory creation body
+        // Save the real base64 image data URL in local state
         const newMediaItem: MediaItem = {
-          fileUrl: ticket.fileUrl,
+          fileUrl: base64Data,
           fileType: ticket.fileType,
           size: ticket.size,
         };
@@ -118,7 +127,7 @@ export default function CreateMemoryForm({ onSuccess }: CreateMemoryFormProps) {
   return (
     <Card className="border border-vault-border/50 max-w-2xl w-full">
       <div className="border-b border-vault-border/30 pb-4 mb-6">
-        <h3 className="text-xl font-bold font-serif">Preserve a Family Memory</h3>
+        <h3 className="text-xl font-bold font-serif">Preserve a Shared Memory</h3>
         <p className="text-xs text-vault-muted mt-1">Catalog stories, dates, locations, and media permanently.</p>
       </div>
 
@@ -151,7 +160,7 @@ export default function CreateMemoryForm({ onSuccess }: CreateMemoryFormProps) {
         {events && events.length > 0 && (
           <div className="flex flex-col gap-1.5 w-full">
             <label htmlFor="event-select" className="text-xs font-semibold uppercase tracking-wider text-vault-muted select-none">
-              Link to Family Event Milestone
+              Link to Shared Event Milestone
             </label>
             <select
               id="event-select"
@@ -189,7 +198,7 @@ export default function CreateMemoryForm({ onSuccess }: CreateMemoryFormProps) {
         <div className="border border-dashed border-vault-border/60 rounded-xl p-6 bg-primary-dark/20 flex flex-col items-center gap-3">
           <div className="flex flex-col items-center gap-1 text-center">
             <span className="text-3xl select-none" role="img" aria-label="Media folders">📁</span>
-            <p className="text-sm font-semibold">Upload Heritage Files</p>
+            <p className="text-sm font-semibold">Upload Memory Files</p>
             <p className="text-xs text-vault-muted">Simulate secure Cloudflare R2 isolation ticketing</p>
           </div>
 
@@ -223,15 +232,17 @@ export default function CreateMemoryForm({ onSuccess }: CreateMemoryFormProps) {
           {mediaList.length > 0 && (
             <div className="w-full grid grid-cols-2 md:grid-cols-4 gap-3 mt-4 border-t border-vault-border/30 pt-4">
               {mediaList.map((m, idx) => (
-                <div key={idx} className="relative aspect-video rounded-lg overflow-hidden border border-vault-border bg-black/40 flex flex-col items-center justify-center gap-1.5 p-2">
+                <div key={idx} className="relative aspect-video rounded-lg overflow-hidden border border-vault-border bg-black/40 flex items-center justify-center">
                   {m.fileType === 'IMAGE' ? (
-                    <ImageIcon className="w-6 h-6 text-accent-light" />
+                    <img src={m.fileUrl} alt="Preview" className="w-full h-full object-cover" />
                   ) : (
-                    <Video className="w-6 h-6 text-amber-500" />
+                    <div className="flex flex-col items-center justify-center gap-1.5 p-2">
+                      <Video className="w-6 h-6 text-amber-500" />
+                      <span className="text-[10px] text-vault-muted font-mono tracking-wider truncate max-w-full">
+                        Asset #{idx + 1}
+                      </span>
+                    </div>
                   )}
-                  <span className="text-[10px] text-vault-muted font-mono tracking-wider truncate max-w-full">
-                    Asset #{idx + 1}
-                  </span>
                 </div>
               ))}
             </div>

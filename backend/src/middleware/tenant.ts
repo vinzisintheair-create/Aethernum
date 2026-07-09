@@ -29,12 +29,12 @@ export const requireTenantAccess = async (req: Request, res: Response, next: Nex
     });
 
     if (!membership) {
-      return res.status(403).json({ error: 'Access denied: You are not a member of this Family Space.' });
+      return res.status(403).json({ error: 'Access denied: You are not a member of this Friend Space.' });
     }
 
     // Bind parameters to request context for downstream routing
     req.currentSpaceId = familySpaceId;
-    req.userRoleInSpace = membership.role; // 'ADMIN' | 'MEMBER'
+    req.userRoleInSpace = membership.role as 'ADMIN' | 'MEMBER';
 
     next();
   } catch (error) {

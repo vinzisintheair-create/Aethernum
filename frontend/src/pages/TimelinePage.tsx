@@ -143,16 +143,41 @@ export default function TimelinePage() {
                     {memory.media.map((med) => (
                       <div
                         key={med.id}
-                        className="relative aspect-video rounded-lg overflow-hidden border border-vault-border bg-black/40 hover:border-accent/40 transition-all flex flex-col items-center justify-center p-3 gap-2 group cursor-pointer"
+                        className="relative aspect-video rounded-lg overflow-hidden border border-vault-border bg-black/40 hover:border-accent/40 transition-all group cursor-pointer flex items-center justify-center"
                       >
                         {med.fileType === 'IMAGE' ? (
-                          <ImageIcon className="w-8 h-8 text-accent-light group-hover:scale-105 transition-transform" />
-                        ) : (
-                          <Video className="w-8 h-8 text-amber-500 group-hover:scale-105 transition-transform" />
+                          <img
+                            src={med.fileUrl}
+                            alt="Archival media"
+                            className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                            onError={(e) => {
+                              // Replace image with hidden, and show fallback-icon
+                              e.currentTarget.style.display = 'none';
+                              const parent = e.currentTarget.parentElement;
+                              const fallback = parent?.querySelector('.fallback-icon');
+                              if (fallback) fallback.classList.remove('hidden');
+                            }}
+                          />
+                        ) : null}
+
+                        {/* Fallback Icon or Video Icon */}
+                        <div className={`fallback-icon flex flex-col items-center gap-1 text-center p-3 ${med.fileType === 'IMAGE' ? 'hidden' : ''}`}>
+                          {med.fileType === 'IMAGE' ? (
+                            <ImageIcon className="w-8 h-8 text-accent-light" />
+                          ) : (
+                            <Video className="w-8 h-8 text-amber-500" />
+                          )}
+                          <span className="text-[9px] text-vault-muted font-mono truncate max-w-full">
+                            {(med.size / 1024).toFixed(1)} KB
+                          </span>
+                        </div>
+
+                        {/* Floating size badge for resolved images */}
+                        {med.fileType === 'IMAGE' && (
+                          <span className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-sm text-[9px] text-white px-2 py-0.5 rounded font-mono select-none">
+                            {(med.size / 1024).toFixed(1)} KB
+                          </span>
                         )}
-                        <span className="text-[9px] text-vault-muted font-mono truncate max-w-full">
-                          {(med.size / 1024).toFixed(1)} KB
-                        </span>
                       </div>
                     ))}
                   </div>

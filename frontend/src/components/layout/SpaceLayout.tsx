@@ -1,5 +1,10 @@
-import { NavLink, useParams, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { NavLink, useParams, useNavigate, Outlet } from 'react-router-dom';
 import { BookOpen, Library, Settings, LogOut, ShieldAlert } from 'lucide-react';
+import api from '../../utils/api';
+import { Card } from '../ui/Card';
+import { Input } from '../ui/Input';
+import { Button } from '../ui/Button';
 
 interface SpaceLayoutProps {
   children?: React.ReactNode;
@@ -31,8 +36,44 @@ export default function SpaceLayout({ children }: SpaceLayoutProps) {
     }
   ];
 
+  const [mustReset, setMustReset] = useState(
+    localStorage.getItem('aeternum_must_reset') === 'true'
+  );
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [resetError, setResetError] = useState('');
+  const [resetSuccess, setResetSuccess] = useState('');
+  const [resetting, setResetting] = useState(false);
+
+  const handleForceReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword.length < 8) {
+      setResetError('New password must be at least 8 characters.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setResetError('Passwords do not match.');
+      return;
+    }
+
+    setResetting(true);
+    setResetError('');
+    try {
+      await api.post('/auth/reset-password', { newPassword });
+      localStorage.setItem('aeternum_must_reset', 'false');
+      setResetSuccess('Password updated successfully. Accessing Circle Space...');
+      setTimeout(() => {
+        setMustReset(false);
+      }, 1500);
+    } catch (err: any) {
+      setResetError(err.response?.data?.error || 'Failed to update password.');
+    } finally {
+      setResetting(false);
+    }
+  };
+
   const handleLogout = () => {
-    // Session logout placeholder
+    localStorage.removeItem('aeternum_must_reset');
     navigate('/login');
   };
 
@@ -45,14 +86,14 @@ export default function SpaceLayout({ children }: SpaceLayoutProps) {
           <span className="text-2xl" role="img" aria-label="Aeternum Vault Logo">🏛️</span>
           <div>
             <h2 className="text-lg font-bold tracking-wider font-serif uppercase gold-gradient-text">Aeternum</h2>
-            <p className="text-[10px] text-vault-muted uppercase tracking-widest font-semibold">Heritage Archival</p>
+            <p className="text-[10px] text-vault-muted uppercase tracking-widest font-semibold">Friend Archival</p>
           </div>
         </div>
 
         {/* Space contextual info */}
         <div className="p-4 mx-4 mt-4 bg-primary-light/30 border border-vault-border/50 rounded-lg">
           <p className="text-[10px] text-vault-muted uppercase tracking-wider font-semibold">Active Vault</p>
-          <p className="text-xs font-bold text-white mt-0.5 truncate">The Sterling Family Vault</p>
+          <p className="text-xs font-bold text-white mt-0.5 truncate">The Sterling Circle Vault</p>
         </div>
 
         {/* Sidebar Nav Links */}
@@ -64,11 +105,18 @@ export default function SpaceLayout({ children }: SpaceLayoutProps) {
                 key={item.name}
                 to={item.path}
                 end={item.end}
+                onClick={(e) => {
+                  if (mustReset) {
+                    e.preventDefault();
+                  }
+                }}
                 className={({ isActive }) =>
                   `flex items-center gap-3.5 px-4 py-3 rounded-lg text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
-                    isActive
-                      ? 'bg-accent/15 text-white border-l-2 border-accent'
-                      : 'text-vault-muted hover:text-vault-text hover:bg-white/5'
+                    mustReset
+                      ? 'opacity-40 cursor-not-allowed pointer-events-none'
+                      : isActive
+                        ? 'bg-accent/15 text-white border-l-2 border-accent'
+                        : 'text-vault-muted hover:text-vault-text hover:bg-white/5'
                   }`
                 }
               >
@@ -99,17 +147,65 @@ export default function SpaceLayout({ children }: SpaceLayoutProps) {
       <div className="flex-grow flex flex-col md:pl-64 min-h-screen">
         {/* Main layout contents */}
         <main className="flex-grow w-full max-w-6xl mx-auto px-6 py-8 md:py-12 flex flex-col gap-8">
-          {children || <Outlet />}
+          {mustReset ? (
+            <div className="flex justify-center items-center py-12 md:py-24">
+              <Card className="border border-vault-border/60 max-w-md w-full flex flex-col gap-6">
+                <div className="flex flex-col gap-1">
+                  <h3 className="text-xl font-bold text-white">Temporary Credentials Detected</h3>
+                  <p className="text-xs text-vault-muted">For your security, you are required to configure a new permanent password on your first login.</p>
+                </div>
+
+                {resetError && (
+                  <div className="text-xs text-danger bg-danger/10 border border-danger/25 p-3 rounded-lg font-medium">
+                    {resetError}
+                  </div>
+                )}
+
+                {resetSuccess && (
+                  <div className="text-xs text-success bg-success/10 border border-success/25 p-3 rounded-lg font-medium">
+                    {resetSuccess}
+                  </div>
+                )}
+
+                <form onSubmit={handleForceReset} className="flex flex-col gap-4">
+                  <Input
+                    label="New Password (min 8 characters)"
+                    type="password"
+                    placeholder="••••••••••••"
+                    value={newPassword}
+                    onChange={(e) => {
+                      setNewPassword(e.target.value);
+                      setResetError('');
+                    }}
+                    required
+                  />
+                  <Input
+                    label="Confirm New Password"
+                    type="password"
+                    placeholder="••••••••••••"
+                    value={confirmPassword}
+                    onChange={(e) => {
+                      setConfirmPassword(e.target.value);
+                      setResetError('');
+                    }}
+                    required
+                  />
+                  <Button type="submit" variant="primary" className="w-full mt-2" disabled={resetting || !!resetSuccess}>
+                    {resetting ? 'Updating...' : 'Set Permanent Password'}
+                  </Button>
+                </form>
+              </Card>
+            </div>
+          ) : (
+            children || <Outlet />
+          )}
         </main>
 
         {/* Simple discrete footer */}
         <footer className="w-full py-6 text-center text-[10px] text-vault-muted border-t border-vault-border/30">
-          Aeternum Platform — Protecting family legaces securely.
+          Aeternum Platform — Protecting friends' legacies securely.
         </footer>
       </div>
     </div>
   );
 }
-
-// Simple placeholder for react router outlet if children is omitted
-import { Outlet } from 'react-router-dom';

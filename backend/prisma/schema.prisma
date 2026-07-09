@@ -1,21 +1,10 @@
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
 generator client {
   provider = "prisma-client-js"
-}
-
-enum Role {
-  ADMIN
-  MEMBER
-}
-
-enum MediaType {
-  IMAGE
-  VIDEO
-  DOCUMENT
 }
 
 model Member {
@@ -26,6 +15,7 @@ model Member {
   bio                String?
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
+  mustResetPassword  Boolean             @default(false)
   spaceMemberships   SpaceMembership[]
   memoriesCreated    Memory[]
 }
@@ -48,7 +38,7 @@ model SpaceMembership {
   id            String      @id @default(uuid())
   memberId      String
   familySpaceId String
-  role          Role        @default(MEMBER)
+  role          String      @default("MEMBER") // "ADMIN" | "MEMBER"
   joinedAt      DateTime    @default(now())
   member        Member      @relation(fields: [memberId], references: [id], onDelete: Cascade)
   familySpace   FamilySpace @relation(fields: [familySpaceId], references: [id], onDelete: Cascade)
@@ -61,7 +51,7 @@ model SpaceInvitation {
   familySpaceId String
   email         String
   token         String      @unique
-  role          Role        @default(MEMBER)
+  role          String      @default("MEMBER") // "ADMIN" | "MEMBER"
   expiresAt     DateTime
   createdAt     DateTime    @default(now())
   familySpace   FamilySpace @relation(fields: [familySpaceId], references: [id], onDelete: Cascade)
@@ -105,7 +95,7 @@ model Media {
   id        String    @id @default(uuid())
   memoryId  String
   fileUrl   String
-  fileType  MediaType
+  fileType  String    // "IMAGE" | "VIDEO" | "DOCUMENT"
   size      Int
   createdAt DateTime  @default(now())
   memory    Memory    @relation(fields: [memoryId], references: [id], onDelete: Cascade)

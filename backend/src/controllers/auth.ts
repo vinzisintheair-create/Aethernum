@@ -7,52 +7,9 @@ const JWT_SECRET = process.env.JWT_SECRET || 'aeternum_fallback_secret_key_chang
 const SESSION_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 export const register = async (req: Request, res: Response) => {
-  try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required.' });
-    }
-
-    if (password.length < 8) {
-      return res.status(400).json({ error: 'Password must be at least 8 characters long.' });
-    }
-
-    const normalizedEmail = email.toLowerCase().trim();
-
-    // Check if member already exists
-    const existingMember = await prisma.member.findUnique({
-      where: { email: normalizedEmail }
-    });
-
-    if (existingMember) {
-      return res.status(400).json({ error: 'Email is already registered.' });
-    }
-
-    // Hash password
-    const saltRounds = 12;
-    const passwordHash = await bcrypt.hash(password, saltRounds);
-
-    // Create member
-    const newMember = await prisma.member.create({
-      data: {
-        email: normalizedEmail,
-        passwordHash
-      }
-    });
-
-    return res.status(201).json({
-      message: 'Registration successful. Please log in to continue.',
-      member: {
-        id: newMember.id,
-        email: newMember.email,
-        createdAt: newMember.createdAt
-      }
-    });
-  } catch (error) {
-    console.error('[Registration Error]:', error);
-    return res.status(500).json({ error: 'Internal server error during registration.' });
-  }
+  return res.status(403).json({
+    error: 'Public registration is disabled. You must be invited by a Friend Space Administrator.'
+  });
 };
 
 export const login = async (req: Request, res: Response) => {
@@ -107,7 +64,8 @@ export const login = async (req: Request, res: Response) => {
         id: member.id,
         email: member.email,
         profilePictureUrl: member.profilePictureUrl,
-        bio: member.bio
+        bio: member.bio,
+        mustResetPassword: member.mustResetPassword
       }
     });
   } catch (error) {
@@ -165,6 +123,7 @@ export const me = async (req: Request, res: Response) => {
         email: member.email,
         profilePictureUrl: member.profilePictureUrl,
         bio: member.bio,
+        mustResetPassword: member.mustResetPassword,
         createdAt: member.createdAt,
         updatedAt: member.updatedAt
       }
@@ -172,5 +131,36 @@ export const me = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('[Me Controller Error]:', error);
     return res.status(500).json({ error: 'Internal server error retrieving member profile.' });
+  }
+};
+
+export const resetPassword = async (req: Request, res: Response) => {
+  try {
+    const userId = req.userId;
+    const { newPassword } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Not authenticated.' });
+    }
+
+    if (!newPassword || newPassword.length < 8) {
+      return res.status(400).json({ error: 'New password must be at least 8 characters long.' });
+    }
+
+    const saltRounds = 12;
+    const passwordHash = await bcrypt.hash(newPassword, saltRounds);
+
+    await prisma.member.update({
+      where: { id: userId },
+      data: {
+        passwordHash,
+        mustResetPassword: false
+      }
+    });
+
+    return res.status(200).json({ message: 'Password updated successfully.' });
+  } catch (error) {
+    console.error('[Password Reset Error]:', error);
+    return res.status(500).json({ error: 'Internal server error resetting password.' });
   }
 };
