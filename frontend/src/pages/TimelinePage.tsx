@@ -165,19 +165,14 @@ export default function TimelinePage() {
                           {med.fileType === 'IMAGE' ? (
                             <ImageIcon className="w-8 h-8 text-accent-light" />
                           ) : (
-                            <Video className="w-8 h-8 text-amber-500" />
+                            <>
+                              <Video className="w-8 h-8 text-amber-500" />
+                              <span className="text-[9px] text-vault-muted font-mono truncate max-w-full">
+                                {(med.size / 1024).toFixed(1)} KB
+                              </span>
+                            </>
                           )}
-                          <span className="text-[9px] text-vault-muted font-mono truncate max-w-full">
-                            {(med.size / 1024).toFixed(1)} KB
-                          </span>
                         </div>
-
-                        {/* Floating size badge for resolved images */}
-                        {med.fileType === 'IMAGE' && (
-                          <span className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-sm text-[9px] text-white px-2 py-0.5 rounded font-mono select-none">
-                            {(med.size / 1024).toFixed(1)} KB
-                          </span>
-                        )}
                       </div>
                     ))}
                   </div>

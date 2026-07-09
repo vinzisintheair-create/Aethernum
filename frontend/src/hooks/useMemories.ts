@@ -92,3 +92,33 @@ export function useCreateMemory(spaceId: string) {
     },
   });
 }
+
+export interface SpaceMember {
+  id: string;
+  email: string;
+  profilePictureUrl?: string | null;
+  bio?: string | null;
+  role: 'ADMIN' | 'MEMBER';
+  joinedAt: string;
+}
+
+export interface SpaceDetails {
+  id: string;
+  name: string;
+  storageLimit: string;
+  storageUsed: string;
+  createdAt: string;
+  updatedAt: string;
+  members: SpaceMember[];
+}
+
+export function useSpaceDetails(spaceId: string) {
+  return useQuery({
+    queryKey: ['space', spaceId],
+    queryFn: async () => {
+      const response = await api.get<{ space: SpaceDetails }>(`/spaces/${spaceId}`);
+      return response.data.space;
+    },
+    enabled: !!spaceId,
+  });
+}

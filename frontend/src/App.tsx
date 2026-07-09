@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Link, useParams } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useSpaceDetails } from './hooks/useMemories';
 import AuthLayout from './components/layout/AuthLayout';
 import SpaceLayout from './components/layout/SpaceLayout';
 import TimelinePage from './pages/TimelinePage';
@@ -165,12 +166,19 @@ function AlbumsPage() {
 
 function SettingsPage() {
   const { spaceId } = useParams<{ spaceId: string }>();
-  const [spaceName, setSpaceName] = useState('The Sterling Circle');
+  const { data: space, refetch } = useSpaceDetails(spaceId || '');
+  const [spaceName, setSpaceName] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteSent, setInviteSent] = useState(false);
   const [generatedTempPassword, setGeneratedTempPassword] = useState<string | null>(null);
   const [inviteError, setInviteError] = useState('');
   const [inviting, setInviting] = useState(false);
+
+  useEffect(() => {
+    if (space) {
+      setSpaceName(space.name);
+    }
+  }, [space]);
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -186,6 +194,7 @@ function SettingsPage() {
       setInviteSent(true);
       setGeneratedTempPassword(response.data.invitation.tempPassword || null);
       setInviteEmail('');
+      refetch(); // Reload the circle members list dynamically!
     } catch (err: any) {
       setInviteError(err.response?.data?.error || 'Failed to generate invitation.');
     } finally {
@@ -270,31 +279,34 @@ function SettingsPage() {
           <Card className="border-l-4 border-accent border-vault-border/40 flex flex-col gap-4">
             <h3 className="text-md font-bold font-serif flex items-center gap-2">
               <Key className="w-4 h-4 text-accent-light" />
-              Tenant Isolation
+              Circle Isolation
             </h3>
             <p className="text-xs text-vault-muted leading-relaxed">
-              This space belongs to <strong>{spaceId}</strong>. Database indices are structured to block cross-space data leakage. No public metadata search exists.
+              This space belongs to <strong>{spaceId}</strong>. Database indices are structured to block cross-circle data leakage. No public metadata search exists.
             </p>
           </Card>
 
           <Card className="border-vault-border/40 flex flex-col gap-4">
             <h3 className="text-md font-bold font-serif flex items-center gap-2">
               <Users className="w-4 h-4 text-accent-light" />
-              Space Access List
+              Circle Access List
             </h3>
             <div className="divide-y divide-vault-border/30 text-xs">
-              <div className="py-2.5 flex justify-between">
-                <span>Grandmother Martha</span>
-                <span className="text-accent-light font-bold">Admin</span>
-              </div>
-              <div className="py-2.5 flex justify-between">
-                <span>Uncle David</span>
-                <span className="text-vault-muted">Member</span>
-              </div>
-              <div className="py-2.5 flex justify-between">
-                <span>Sarah Sterling</span>
-                <span className="text-vault-muted">Member (You)</span>
-              </div>
+              {space?.members ? (
+                space.members.map((member) => (
+                  <div key={member.id} className="py-2.5 flex justify-between items-center">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-medium text-white">{member.email}</span>
+                      {member.bio && <span className="text-[10px] text-vault-muted">{member.bio}</span>}
+                    </div>
+                    <span className={`font-bold capitalize ${member.role === 'ADMIN' ? 'text-accent-light' : 'text-vault-muted'}`}>
+                      {member.role.toLowerCase()}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <div className="py-4 text-center text-vault-muted">Loading access list...</div>
+              )}
             </div>
           </Card>
         </div>
