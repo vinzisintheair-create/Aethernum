@@ -3,6 +3,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import authRoutes from './routes/auth';
 import spaceRoutes from './routes/space';
+import collaborationRoutes from './routes/collaboration';
 
 const app = express();
 
@@ -20,6 +21,7 @@ app.use(cors({
 // Route configurations
 app.use('/api/auth', authRoutes);
 app.use('/api/spaces', spaceRoutes);
+app.use('/api/spaces/:spaceId/memories', collaborationRoutes);
 
 // Generic fallback handler
 app.use((req, res) => {

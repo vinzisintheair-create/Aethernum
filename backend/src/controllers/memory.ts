@@ -41,6 +41,31 @@ export const getMemories = async (req: Request, res: Response) => {
             fileType: true,
             size: true
           }
+        },
+        annotations: {
+          orderBy: {
+            createdAt: 'asc'
+          },
+          include: {
+            author: {
+              select: {
+                id: true,
+                email: true,
+                profilePictureUrl: true,
+                bio: true
+              }
+            }
+          }
+        },
+        verifications: {
+          include: {
+            verifier: {
+              select: {
+                id: true,
+                email: true
+              }
+            }
+          }
         }
       }
     });

@@ -23,6 +23,25 @@ export interface SpaceEvent {
   description?: string | null;
 }
 
+export interface Annotation {
+  id: string;
+  memoryId: string;
+  authorId: string;
+  content: string;
+  createdAt: string;
+  author: MemberProfile;
+}
+
+export interface Verification {
+  id: string;
+  memoryId: string;
+  verifierId: string;
+  verifier: {
+    id: string;
+    email: string;
+  };
+}
+
 export interface Memory {
   id: string;
   familySpaceId: string;
@@ -38,6 +57,8 @@ export interface Memory {
   author: MemberProfile;
   event?: SpaceEvent | null;
   media: MediaItem[];
+  annotations: Annotation[];
+  verifications: Verification[];
 }
 
 export interface CreateMemoryPayload {
@@ -120,5 +141,53 @@ export function useSpaceDetails(spaceId: string) {
       return response.data.space;
     },
     enabled: !!spaceId,
+  });
+}
+
+// Create new annotation
+export function useCreateAnnotation(spaceId: string, memoryId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (content: string) => {
+      const response = await api.post<{ message: string; annotation: Annotation }>(
+        `/spaces/${spaceId}/memories/${memoryId}/annotations`,
+        { content }
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['memories', spaceId] });
+    }
+  });
+}
+
+// Toggle verification co-signature
+export function useToggleVerification(spaceId: string, memoryId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (verified: boolean) => {
+      if (verified) {
+        await api.post(`/spaces/${spaceId}/memories/${memoryId}/verify`);
+      } else {
+        await api.post(`/spaces/${spaceId}/memories/${memoryId}/unverify`);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['memories', spaceId] });
+    }
+  });
+}
+
+// Fetch current user details
+export function useCurrentUser() {
+  return useQuery({
+    queryKey: ['me'],
+    queryFn: async () => {
+      const response = await api.get<{ member: MemberProfile }>('/auth/me');
+      return response.data.member;
+    },
+    retry: false
   });
 }
