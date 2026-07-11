@@ -1,0 +1,16 @@
+# fly.toml file for Aeternum backend service
+
+app = "" # Leave blank to let Fly prompt you to choose a unique name during setup
+primary_region = "hkg"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = "suspend"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+[[mounts]]
+  source = "aeternum_data"
+  destination = "/data"
