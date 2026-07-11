@@ -114,7 +114,7 @@ export function MemoryCard({ memory, spaceId, currentUser, formatDate }: MemoryC
 
         {/* Media grid if files are attached */}
         {memory.media && memory.media.length > 0 && (
-          <div className={`grid gap-4 mt-3 ${
+          <div className={`grid gap-4 mt-3 mx-auto w-full ${
             memory.media.length === 1 
               ? 'grid-cols-1 max-w-xl' 
               : memory.media.length === 2 
