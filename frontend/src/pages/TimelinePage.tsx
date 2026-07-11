@@ -304,20 +304,18 @@ export default function TimelinePage() {
 
       {/* Creation form slide */}
       {isFormOpen && (
-        <Card className="border border-vault-border bg-vault-card/65 p-6 relative">
+        <div className="relative w-full flex justify-center">
           <button 
             onClick={() => setIsFormOpen(false)}
-            className="absolute top-4 right-4 text-vault-muted hover:text-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded p-1"
+            className="absolute top-4 right-4 md:top-6 md:right-6 text-vault-muted hover:text-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded p-1 z-10"
             aria-label="Close Creation Panel"
           >
             <X className="w-5 h-5" />
           </button>
-          <div className="flex justify-center">
-            <CreateMemoryForm 
-              onSuccess={() => setIsFormOpen(false)} 
-            />
-          </div>
-        </Card>
+          <CreateMemoryForm 
+            onSuccess={() => setIsFormOpen(false)} 
+          />
+        </div>
       )}
 
       {/* State feedbacks */}

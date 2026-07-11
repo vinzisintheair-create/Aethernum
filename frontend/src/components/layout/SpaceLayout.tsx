@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, useParams, useNavigate, Outlet } from 'react-router-dom';
-import { BookOpen, Library, Settings, LogOut, ShieldAlert } from 'lucide-react';
+import { BookOpen, Library, Settings, LogOut, ShieldAlert, Menu, X as XIcon } from 'lucide-react';
 import api from '../../utils/api';
 import { Card } from '../ui/Card';
 import { Input } from '../ui/Input';
@@ -13,6 +13,7 @@ interface SpaceLayoutProps {
 export default function SpaceLayout({ children }: SpaceLayoutProps) {
   const { spaceId } = useParams<{ spaceId: string }>();
   const navigate = useNavigate();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Navigation Links definition
   const navItems = [
@@ -78,16 +79,51 @@ export default function SpaceLayout({ children }: SpaceLayoutProps) {
   };
 
   return (
-    <div className="min-h-screen bg-vault-bg text-vault-text flex flex-col md:flex-row">
-      {/* Sidebar - Desktop Layout */}
-      <aside className="w-full md:w-64 bg-vault-card border-b md:border-b-0 md:border-r border-vault-border/55 flex flex-col md:fixed md:inset-y-0 md:left-0 z-30">
-        {/* Brand identity header */}
-        <div className="p-6 border-b border-vault-border/55 flex items-center gap-3">
-          <span className="text-2xl" role="img" aria-label="Aeternum Vault Logo">🏛️</span>
+    <div className="min-h-screen bg-vault-bg text-vault-text flex flex-col md:flex-row relative">
+      {/* Top Header Bar on Mobile */}
+      <header className="flex md:hidden items-center justify-between p-4 bg-vault-card border-b border-vault-border/55 sticky top-0 z-40">
+        <div className="flex items-center gap-2.5">
+          <span className="text-xl" role="img" aria-label="Aeternum Vault Logo">🏛️</span>
           <div>
-            <h2 className="text-lg font-bold tracking-wider font-serif uppercase gold-gradient-text">Aeternum</h2>
-            <p className="text-[10px] text-vault-muted uppercase tracking-widest font-semibold">Friend Archival</p>
+            <span className="text-sm font-bold tracking-wider font-serif uppercase gold-gradient-text">Aeternum</span>
+            <p className="text-[8px] text-vault-muted uppercase tracking-widest font-semibold">Circle Archival</p>
           </div>
+        </div>
+        <button
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className="text-vault-muted hover:text-white focus:outline-none p-1"
+          aria-label="Toggle navigation menu"
+        >
+          <Menu className="w-6 h-6" />
+        </button>
+      </header>
+
+      {/* Backdrop overlay for mobile menu drawer */}
+      {isMobileMenuOpen && (
+        <div
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 md:hidden"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Sidebar - Desktop & Responsive Mobile Drawer Layout */}
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-vault-card border-r border-vault-border/55 flex flex-col transform transition-transform duration-300 ease-in-out md:translate-x-0 md:fixed md:inset-y-0 md:left-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        {/* Brand identity header */}
+        <div className="p-6 border-b border-vault-border/55 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl" role="img" aria-label="Aeternum Vault Logo">🏛️</span>
+            <div>
+              <h2 className="text-lg font-bold tracking-wider font-serif uppercase gold-gradient-text">Aeternum</h2>
+              <p className="text-[10px] text-vault-muted uppercase tracking-widest font-semibold">Friend Archival</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="md:hidden text-vault-muted hover:text-white focus:outline-none p-1"
+            aria-label="Close menu"
+          >
+            <XIcon className="w-5 h-5" />
+          </button>
         </div>
 
         {/* Space contextual info */}
@@ -108,6 +144,8 @@ export default function SpaceLayout({ children }: SpaceLayoutProps) {
                 onClick={(e) => {
                   if (mustReset) {
                     e.preventDefault();
+                  } else {
+                    setIsMobileMenuOpen(false);
                   }
                 }}
                 className={({ isActive }) =>
@@ -131,7 +169,7 @@ export default function SpaceLayout({ children }: SpaceLayoutProps) {
         <div className="p-4 border-t border-vault-border/55 flex flex-col gap-2 mt-auto">
           <div className="flex items-center gap-2 px-4 py-2 text-[11px] text-vault-muted bg-white/5 rounded">
             <ShieldAlert className="w-3.5 h-3.5 text-accent-light" />
-            <span>Tenant Isolation Active</span>
+            <span>Circle Isolation Active</span>
           </div>
           <button
             onClick={handleLogout}
