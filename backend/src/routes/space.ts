@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createSpace, getSpace, createInvitation } from '../controllers/space';
+import { createSpace, getSpace, createInvitation, updateSpace } from '../controllers/space';
 import { getMemories, createMemory, getEvents, createUploadTicket } from '../controllers/memory';
 import { createAlbum, getAlbums, getAlbumDetails } from '../controllers/album';
 import { authenticate } from '../middleware/auth';
@@ -12,6 +12,7 @@ router.post('/', authenticate, createSpace);
 
 // Scoped tenant endpoints
 router.get('/:spaceId', authenticate, requireTenantAccess, getSpace);
+router.patch('/:spaceId', authenticate, requireTenantAccess, updateSpace);
 router.post('/:spaceId/invitations', authenticate, requireTenantAccess, createInvitation);
 router.get('/:spaceId/memories', authenticate, requireTenantAccess, getMemories);
 router.post('/:spaceId/memories', authenticate, requireTenantAccess, createMemory);

@@ -215,3 +215,39 @@ export const createInvitation = async (req: Request, res: Response) => {
     return res.status(500).json({ error: 'Internal server error generating Friend Space invitation.' });
   }
 };
+
+export const updateSpace = async (req: Request, res: Response) => {
+  try {
+    const spaceId = req.currentSpaceId;
+    const roleInSpace = req.userRoleInSpace;
+    const { name } = req.body;
+
+    if (!spaceId) {
+      return res.status(400).json({ error: 'Friend Space context is missing.' });
+    }
+
+    if (roleInSpace !== 'ADMIN') {
+      return res.status(403).json({ error: 'Access denied: Only Friend Space Administrators can edit vault parameters.' });
+    }
+
+    if (!name || name.trim() === '') {
+      return res.status(400).json({ error: 'Friend Space name is required.' });
+    }
+
+    const updatedSpace = await prisma.familySpace.update({
+      where: { id: spaceId },
+      data: { name: name.trim() }
+    });
+
+    return res.status(200).json({
+      message: 'Friend Space name updated successfully.',
+      space: {
+        id: updatedSpace.id,
+        name: updatedSpace.name
+      }
+    });
+  } catch (error) {
+    console.error('[Update Space Error]:', error);
+    return res.status(500).json({ error: 'Internal server error updating Friend Space settings.' });
+  }
+};

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Link, useParams } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { useSpaceDetails, useSpaceAlbums, useAlbumDetails, useCreateAlbum, useCurrentUser } from './hooks/useMemories';
 import AuthLayout from './components/layout/AuthLayout';
 import SpaceLayout from './components/layout/SpaceLayout';
@@ -353,6 +353,7 @@ function AlbumDetailView({ spaceId, albumId, onBack, currentUser }: AlbumDetailV
 
 function SettingsPage() {
   const { spaceId } = useParams<{ spaceId: string }>();
+  const queryClient = useQueryClient();
   const { data: space, refetch } = useSpaceDetails(spaceId || '');
   const [spaceName, setSpaceName] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
@@ -361,11 +362,36 @@ function SettingsPage() {
   const [inviteError, setInviteError] = useState('');
   const [inviting, setInviting] = useState(false);
 
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const [saveSuccess, setSaveSuccess] = useState('');
+
   useEffect(() => {
     if (space) {
       setSpaceName(space.name);
     }
   }, [space]);
+
+  const handleSaveSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!spaceName.trim()) return;
+
+    setSaving(true);
+    setSaveError('');
+    setSaveSuccess('');
+
+    try {
+      await api.patch(`/spaces/${spaceId}`, { name: spaceName.trim() });
+      setSaveSuccess('Friend Space name updated successfully.');
+      refetch();
+      queryClient.invalidateQueries({ queryKey: ['space', spaceId] });
+      setTimeout(() => setSaveSuccess(''), 4000);
+    } catch (err: any) {
+      setSaveError(err.response?.data?.error || 'Failed to save space parameters.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -401,11 +427,29 @@ function SettingsPage() {
         <div className="lg:col-span-2 flex flex-col gap-6">
           <Card className="border border-vault-border/40 flex flex-col gap-4">
             <h3 className="text-lg font-bold font-serif">General Profile</h3>
-            <div className="flex flex-col gap-4 max-w-md">
+            
+            {saveError && (
+              <div className="text-xs text-danger bg-danger/10 border border-danger/25 p-3 rounded-lg font-medium">
+                {saveError}
+              </div>
+            )}
+
+            {saveSuccess && (
+              <div className="text-xs text-success bg-success/10 border border-success/25 p-3 rounded-lg font-medium">
+                {saveSuccess}
+              </div>
+            )}
+
+            <form onSubmit={handleSaveSettings} className="flex flex-col gap-4 max-w-md">
               <Input
                 label="Space Name"
                 value={spaceName}
-                onChange={(e) => setSpaceName(e.target.value)}
+                onChange={(e) => {
+                  setSpaceName(e.target.value);
+                  setSaveError('');
+                  setSaveSuccess('');
+                }}
+                required
               />
               <Input
                 label="Unique URL Identifier"
@@ -413,8 +457,10 @@ function SettingsPage() {
                 disabled
                 className="bg-primary-dark/80 cursor-not-allowed border-vault-border/30"
               />
-              <Button className="w-fit mt-2">Save Parameters</Button>
-            </div>
+              <Button type="submit" className="w-fit mt-2" disabled={saving}>
+                {saving ? 'Saving...' : 'Save Parameters'}
+              </Button>
+            </form>
           </Card>
 
           <Card className="border border-vault-border/40 flex flex-col gap-4">
