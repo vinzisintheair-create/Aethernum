@@ -185,6 +185,44 @@ export const getEvents = async (req: Request, res: Response) => {
   }
 };
 
+export const createEvent = async (req: Request, res: Response) => {
+  try {
+    const spaceId = req.currentSpaceId;
+    const { title, date, location, description } = req.body;
+
+    if (!spaceId) {
+      return res.status(400).json({ error: 'Family Space context is missing.' });
+    }
+
+    if (!title || !date) {
+      return res.status(400).json({ error: 'Milestone title and date are required fields.' });
+    }
+
+    const parsedDate = new Date(date);
+    if (isNaN(parsedDate.getTime())) {
+      return res.status(400).json({ error: 'Invalid milestone date format.' });
+    }
+
+    const event = await prisma.event.create({
+      data: {
+        familySpaceId: spaceId,
+        title: title.trim(),
+        date: parsedDate,
+        location: location ? location.trim() : null,
+        description: description ? description.trim() : null
+      }
+    });
+
+    return res.status(201).json({
+      message: 'Milestone event created successfully.',
+      event
+    });
+  } catch (error) {
+    console.error('[Create Event Error]:', error);
+    return res.status(500).json({ error: 'Internal server error creating event milestone.' });
+  }
+};
+
 export const createUploadTicket = async (req: Request, res: Response) => {
   try {
     const spaceId = req.currentSpaceId;

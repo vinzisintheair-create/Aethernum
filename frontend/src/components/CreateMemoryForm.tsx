@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { useCreateMemory, useSpaceEvents, useSpaceAlbums, MediaItem } from '../hooks/useMemories';
+import { useCreateMemory, useSpaceEvents, useSpaceAlbums, useCreateEvent, MediaItem } from '../hooks/useMemories';
 import { Input } from './ui/Input';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
@@ -24,6 +24,14 @@ export default function CreateMemoryForm({ onSuccess }: CreateMemoryFormProps) {
   const [selectedAlbumIds, setSelectedAlbumIds] = useState<string[]>([]);
   const [mediaList, setMediaList] = useState<MediaItem[]>([]);
   
+  // Milestone creation form state
+  const [showEventForm, setShowEventForm] = useState(false);
+  const [eventTitle, setEventTitle] = useState('');
+  const [eventDate, setEventDate] = useState('');
+  const [eventLocation, setEventLocation] = useState('');
+  const [eventDesc, setEventDesc] = useState('');
+  const [eventError, setEventError] = useState('');
+
   // Interface uploading states
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
@@ -32,6 +40,7 @@ export default function CreateMemoryForm({ onSuccess }: CreateMemoryFormProps) {
   const { data: events } = useSpaceEvents(activeSpaceId);
   const { data: albums } = useSpaceAlbums(activeSpaceId);
   const createMemoryMutation = useCreateMemory(activeSpaceId);
+  const createEventMutation = useCreateEvent(activeSpaceId);
 
   // File Upload Handler (Simulating Cloudflare R2 Signatures)
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -90,6 +99,32 @@ export default function CreateMemoryForm({ onSuccess }: CreateMemoryFormProps) {
       setUploadStatus('Media upload ticket pipeline failed.');
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleCreateEvent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!eventTitle.trim() || !eventDate) {
+      setEventError('Milestone title and date are required.');
+      return;
+    }
+
+    setEventError('');
+    try {
+      const response = await createEventMutation.mutateAsync({
+        title: eventTitle.trim(),
+        date: eventDate,
+        location: eventLocation.trim() || undefined,
+        description: eventDesc.trim() || undefined
+      });
+      setEventId(response.event.id);
+      setEventTitle('');
+      setEventDate('');
+      setEventLocation('');
+      setEventDesc('');
+      setShowEventForm(false);
+    } catch (err: any) {
+      setEventError(err.response?.data?.error || 'Failed to create event milestone.');
     }
   };
 
@@ -160,11 +195,71 @@ export default function CreateMemoryForm({ onSuccess }: CreateMemoryFormProps) {
         </div>
 
         {/* Milestone selection */}
-        {events && events.length > 0 && (
-          <div className="flex flex-col gap-1.5 w-full">
+        <div className="flex flex-col gap-2 w-full">
+          <div className="flex justify-between items-center">
             <label htmlFor="event-select" className="text-xs font-semibold uppercase tracking-wider text-vault-muted select-none">
               Link to Shared Event Milestone
             </label>
+            <button
+              type="button"
+              onClick={() => {
+                setShowEventForm(!showEventForm);
+                setEventError('');
+              }}
+              className="text-xs text-accent-light hover:text-white flex items-center gap-1 font-semibold transition-all"
+            >
+              {showEventForm ? '✕ Close Form' : '+ Create Milestone'}
+            </button>
+          </div>
+
+          {showEventForm ? (
+            <Card className="border border-vault-border/50 bg-vault-card/40 p-4 space-y-3.5 mt-1">
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider">New Shareable Milestone</h4>
+              {eventError && (
+                <div className="text-[10px] text-danger bg-danger/10 border border-danger/25 p-2 rounded">
+                  {eventError}
+                </div>
+              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                <Input
+                  label="Milestone Title (Required)"
+                  placeholder="e.g. Homestead Construction"
+                  value={eventTitle}
+                  onChange={(e) => setEventTitle(e.target.value)}
+                  required
+                />
+                <Input
+                  label="Milestone Date (Required)"
+                  type="date"
+                  value={eventDate}
+                  onChange={(e) => setEventDate(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                <Input
+                  label="Location (Optional)"
+                  placeholder="e.g. Windermere Lake, BC"
+                  value={eventLocation}
+                  onChange={(e) => setEventLocation(e.target.value)}
+                />
+                <Input
+                  label="Description / Context (Optional)"
+                  placeholder="Brief context..."
+                  value={eventDesc}
+                  onChange={(e) => setEventDesc(e.target.value)}
+                />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <Button type="button" variant="outline" size="sm" onClick={() => setShowEventForm(false)}>
+                  Cancel
+                </Button>
+                <Button type="button" variant="primary" size="sm" onClick={handleCreateEvent} disabled={createEventMutation.isPending}>
+                  {createEventMutation.isPending ? 'Saving...' : 'Add Milestone'}
+                </Button>
+              </div>
+            </Card>
+          ) : (
             <select
               id="event-select"
               value={eventId}
@@ -172,14 +267,14 @@ export default function CreateMemoryForm({ onSuccess }: CreateMemoryFormProps) {
               className="w-full px-4 py-3 bg-primary-dark/40 border border-vault-border/60 hover:border-vault-border/90 rounded-lg text-sm text-vault-text transition-all focus:border-accent focus:ring-1 focus:ring-accent"
             >
               <option value="">-- No linked event --</option>
-              {events.map((e) => (
+              {events && events.map((e) => (
                 <option key={e.id} value={e.id}>
                   {e.title} ({new Date(e.date).getFullYear()})
                 </option>
               ))}
             </select>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Organize into Album Folders checklist */}
         {albums && albums.length > 0 && (

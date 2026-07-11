@@ -251,3 +251,20 @@ export function useCreateAlbum(spaceId: string) {
     }
   });
 }
+
+export function useCreateEvent(spaceId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: { title: string; date: string; location?: string; description?: string }) => {
+      const response = await api.post<{ message: string; event: SpaceEvent }>(
+        `/spaces/${spaceId}/events`,
+        payload
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['events', spaceId] });
+    }
+  });
+}

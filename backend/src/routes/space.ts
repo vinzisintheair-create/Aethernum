@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { createSpace, getSpace, createInvitation, updateSpace } from '../controllers/space';
-import { getMemories, createMemory, getEvents, createUploadTicket } from '../controllers/memory';
+import { getMemories, createMemory, getEvents, createEvent, createUploadTicket } from '../controllers/memory';
 import { createAlbum, getAlbums, getAlbumDetails } from '../controllers/album';
 import { authenticate } from '../middleware/auth';
 import { requireTenantAccess } from '../middleware/tenant';
@@ -17,6 +17,7 @@ router.post('/:spaceId/invitations', authenticate, requireTenantAccess, createIn
 router.get('/:spaceId/memories', authenticate, requireTenantAccess, getMemories);
 router.post('/:spaceId/memories', authenticate, requireTenantAccess, createMemory);
 router.get('/:spaceId/events', authenticate, requireTenantAccess, getEvents);
+router.post('/:spaceId/events', authenticate, requireTenantAccess, createEvent);
 router.post('/:spaceId/media/upload-ticket', authenticate, requireTenantAccess, createUploadTicket);
 
 // Albums endpoints
