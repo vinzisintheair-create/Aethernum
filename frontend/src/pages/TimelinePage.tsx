@@ -65,7 +65,7 @@ function MemoryCard({ memory, spaceId, currentUser, formatDate }: MemoryCardProp
   };
 
   // Compile verification list string
-  const verificationList = memory.verifications.map((v) => v.verifier.email);
+  const verificationList = memory.verifications.map((v) => v.verifier.username || v.verifier.email);
   const verificationString =
     verificationList.length === 0
       ? ''
@@ -169,7 +169,7 @@ function MemoryCard({ memory, spaceId, currentUser, formatDate }: MemoryCardProp
             <div className="flex items-center gap-2 text-vault-muted">
               <User className="w-3.5 h-3.5 text-accent-light" />
               <span>
-                Preserved by: <strong className="text-slate-300 font-semibold">{memory.author.email}</strong>
+                Preserved by: <strong className="text-slate-300 font-semibold">{memory.author.username || memory.author.email}</strong>
               </span>
             </div>
 
@@ -206,7 +206,7 @@ function MemoryCard({ memory, spaceId, currentUser, formatDate }: MemoryCardProp
                 {memory.annotations.map((ann) => (
                   <div key={ann.id} className="text-xs pt-3 first:pt-0">
                     <div className="flex items-center gap-2 text-[10px] text-vault-muted font-medium mb-1">
-                      <span>{ann.author.email}</span>
+                      <span>{ann.author.username || ann.author.email}</span>
                       <span>•</span>
                       <span>{new Date(ann.createdAt).toLocaleDateString()}</span>
                     </div>

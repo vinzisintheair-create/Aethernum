@@ -40,6 +40,7 @@ export default function SpaceLayout({ children }: SpaceLayoutProps) {
   const [mustReset, setMustReset] = useState(
     localStorage.getItem('aeternum_must_reset') === 'true'
   );
+  const [username, setUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [resetError, setResetError] = useState('');
@@ -48,6 +49,10 @@ export default function SpaceLayout({ children }: SpaceLayoutProps) {
 
   const handleForceReset = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!username.trim()) {
+      setResetError('Display username is required.');
+      return;
+    }
     if (newPassword.length < 8) {
       setResetError('New password must be at least 8 characters.');
       return;
@@ -60,14 +65,14 @@ export default function SpaceLayout({ children }: SpaceLayoutProps) {
     setResetting(true);
     setResetError('');
     try {
-      await api.post('/auth/reset-password', { newPassword });
+      await api.post('/auth/reset-password', { newPassword, username: username.trim() });
       localStorage.setItem('aeternum_must_reset', 'false');
-      setResetSuccess('Password updated successfully. Accessing Circle Space...');
+      setResetSuccess('Credentials updated successfully. Accessing Circle Space...');
       setTimeout(() => {
         setMustReset(false);
       }, 1500);
     } catch (err: any) {
-      setResetError(err.response?.data?.error || 'Failed to update password.');
+      setResetError(err.response?.data?.error || 'Failed to update credentials.');
     } finally {
       setResetting(false);
     }
@@ -205,7 +210,18 @@ export default function SpaceLayout({ children }: SpaceLayoutProps) {
                   </div>
                 )}
 
-                <form onSubmit={handleForceReset} className="flex flex-col gap-4">
+                 <form onSubmit={handleForceReset} className="flex flex-col gap-4">
+                  <Input
+                    label="Choose Display Name / Username (Required)"
+                    type="text"
+                    placeholder="e.g. Uncle David, Sarah Sterling"
+                    value={username}
+                    onChange={(e) => {
+                      setUsername(e.target.value);
+                      setResetError('');
+                    }}
+                    required
+                  />
                   <Input
                     label="New Password (min 8 characters)"
                     type="password"
@@ -229,7 +245,7 @@ export default function SpaceLayout({ children }: SpaceLayoutProps) {
                     required
                   />
                   <Button type="submit" variant="primary" className="w-full mt-2" disabled={resetting || !!resetSuccess}>
-                    {resetting ? 'Updating...' : 'Set Permanent Password'}
+                    {resetting ? 'Updating...' : 'Set Display Name & Password'}
                   </Button>
                 </form>
               </Card>

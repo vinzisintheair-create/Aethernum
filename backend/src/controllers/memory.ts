@@ -23,6 +23,7 @@ export const getMemories = async (req: Request, res: Response) => {
           select: {
             id: true,
             email: true,
+            username: true,
             profilePictureUrl: true,
             bio: true
           }
@@ -51,6 +52,7 @@ export const getMemories = async (req: Request, res: Response) => {
               select: {
                 id: true,
                 email: true,
+                username: true,
                 profilePictureUrl: true,
                 bio: true
               }
@@ -62,7 +64,8 @@ export const getMemories = async (req: Request, res: Response) => {
             verifier: {
               select: {
                 id: true,
-                email: true
+                email: true,
+                username: true
               }
             }
           }

@@ -296,7 +296,9 @@ function SettingsPage() {
                 space.members.map((member) => (
                   <div key={member.id} className="py-2.5 flex justify-between items-center">
                     <div className="flex flex-col gap-0.5">
-                      <span className="font-medium text-white">{member.email}</span>
+                      <span className="font-medium text-white">
+                        {member.username ? `${member.username} (${member.email})` : member.email}
+                      </span>
                       {member.bio && <span className="text-[10px] text-vault-muted">{member.bio}</span>}
                     </div>
                     <span className={`font-bold capitalize ${member.role === 'ADMIN' ? 'text-accent-light' : 'text-vault-muted'}`}>

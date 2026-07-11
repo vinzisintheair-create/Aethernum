@@ -63,6 +63,7 @@ export const login = async (req: Request, res: Response) => {
       member: {
         id: member.id,
         email: member.email,
+        username: member.username,
         profilePictureUrl: member.profilePictureUrl,
         bio: member.bio,
         mustResetPassword: member.mustResetPassword
@@ -121,6 +122,7 @@ export const me = async (req: Request, res: Response) => {
       member: {
         id: member.id,
         email: member.email,
+        username: member.username,
         profilePictureUrl: member.profilePictureUrl,
         bio: member.bio,
         mustResetPassword: member.mustResetPassword,
@@ -137,7 +139,7 @@ export const me = async (req: Request, res: Response) => {
 export const resetPassword = async (req: Request, res: Response) => {
   try {
     const userId = req.userId;
-    const { newPassword } = req.body;
+    const { newPassword, username } = req.body;
 
     if (!userId) {
       return res.status(401).json({ error: 'Not authenticated.' });
@@ -147,6 +149,10 @@ export const resetPassword = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'New password must be at least 8 characters long.' });
     }
 
+    if (!username || username.trim() === '') {
+      return res.status(400).json({ error: 'A display username is required.' });
+    }
+
     const saltRounds = 12;
     const passwordHash = await bcrypt.hash(newPassword, saltRounds);
 
@@ -154,11 +160,12 @@ export const resetPassword = async (req: Request, res: Response) => {
       where: { id: userId },
       data: {
         passwordHash,
+        username: username.trim(),
         mustResetPassword: false
       }
     });
 
-    return res.status(200).json({ message: 'Password updated successfully.' });
+    return res.status(200).json({ message: 'Profile credentials and password updated successfully.' });
   } catch (error) {
     console.error('[Password Reset Error]:', error);
     return res.status(500).json({ error: 'Internal server error resetting password.' });

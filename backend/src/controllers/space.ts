@@ -73,6 +73,7 @@ export const getSpace = async (req: Request, res: Response) => {
               select: {
                 id: true,
                 email: true,
+                username: true,
                 profilePictureUrl: true,
                 bio: true,
                 createdAt: true
@@ -91,6 +92,7 @@ export const getSpace = async (req: Request, res: Response) => {
     const members = space.memberships.map((m) => ({
       id: m.member.id,
       email: m.member.email,
+      username: m.member.username,
       profilePictureUrl: m.member.profilePictureUrl,
       bio: m.member.bio,
       role: m.role,

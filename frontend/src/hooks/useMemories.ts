@@ -11,6 +11,7 @@ export interface MediaItem {
 export interface MemberProfile {
   id: string;
   email: string;
+  username?: string | null;
   profilePictureUrl?: string | null;
   bio?: string | null;
 }
@@ -39,6 +40,7 @@ export interface Verification {
   verifier: {
     id: string;
     email: string;
+    username?: string | null;
   };
 }
 
@@ -117,6 +119,7 @@ export function useCreateMemory(spaceId: string) {
 export interface SpaceMember {
   id: string;
   email: string;
+  username?: string | null;
   profilePictureUrl?: string | null;
   bio?: string | null;
   role: 'ADMIN' | 'MEMBER';
