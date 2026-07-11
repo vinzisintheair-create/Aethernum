@@ -77,14 +77,29 @@ export default function CreateMemoryForm({ onSuccess }: CreateMemoryFormProps) {
 
         const ticket = ticketResponse.data;
 
-        // 2. Simulate binary upload execution to the R2 signed URL
-        setUploadStatus(`Uploading & optimizing ${file.name}...`);
-        await new Promise((resolve) => setTimeout(resolve, 800)); // Simulated network lag
+        // 2. Upload file to presigned uploadUrl
+        setUploadStatus(`Uploading ${file.name} to storage...`);
+        if (ticket.uploadUrl.includes('mock-r2-upload')) {
+          // Simulated local fallback
+          await new Promise((resolve) => setTimeout(resolve, 800));
+        } else {
+          // Real Cloudflare R2 presigned PUT upload
+          const uploadRes = await fetch(ticket.uploadUrl, {
+            method: 'PUT',
+            body: file,
+            headers: {
+              'Content-Type': file.type,
+            },
+          });
+          if (!uploadRes.ok) {
+            throw new Error(`R2 upload failed with status ${uploadRes.status}`);
+          }
+        }
 
         // 3. Log into local media list state to bundle into memory creation body
-        // Save the real base64 image data URL in local state
+        // If uploading to real R2, we store the public CDN URL. If local fallback, we keep base64.
         const newMediaItem: MediaItem = {
-          fileUrl: base64Data,
+          fileUrl: ticket.uploadUrl.includes('mock-r2-upload') ? base64Data : ticket.fileUrl,
           fileType: ticket.fileType,
           size: ticket.size,
         };

@@ -1,6 +1,19 @@
 import { Request, Response } from 'express';
 import { prisma } from '../prisma';
 import crypto from 'crypto';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+
+const r2Client = process.env.R2_ACCESS_KEY_ID
+  ? new S3Client({
+      region: 'auto',
+      endpoint: process.env.R2_ENDPOINT,
+      credentials: {
+        accessKeyId: process.env.R2_ACCESS_KEY_ID,
+        secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
+      },
+    })
+  : null;
 
 export const getMemories = async (req: Request, res: Response) => {
   try {
@@ -238,7 +251,6 @@ export const createUploadTicket = async (req: Request, res: Response) => {
 
     // Generate unique file path
     const fileKey = `spaces/${spaceId}/media/${crypto.randomUUID()}-${fileName}`;
-    const fileUrl = `/mock-storage/${fileKey}`; // Simulated static cloud store url
 
     // Determine type enum
     let dbType: 'IMAGE' | 'VIDEO' | 'DOCUMENT' = 'DOCUMENT';
@@ -248,7 +260,29 @@ export const createUploadTicket = async (req: Request, res: Response) => {
       dbType = 'VIDEO';
     }
 
-    // Return signed upload ticket details
+    if (r2Client && process.env.R2_BUCKET_NAME) {
+      // Generate real Cloudflare R2 Presigned Upload URL
+      const command = new PutObjectCommand({
+        Bucket: process.env.R2_BUCKET_NAME,
+        Key: fileKey,
+        ContentType: fileType,
+      });
+
+      const presignedUrl = await getSignedUrl(r2Client, command, { expiresIn: 3600 });
+      const publicBaseUrl = process.env.R2_PUBLIC_URL || '';
+      const fileUrl = `${publicBaseUrl}/${fileKey}`;
+
+      return res.status(200).json({
+        uploadUrl: presignedUrl,
+        fileUrl,
+        fileKey,
+        fileType: dbType,
+        size: Number(fileSize)
+      });
+    }
+
+    // Fallback to local simulated ticket if R2 variables are not in env
+    const fileUrl = `/mock-storage/${fileKey}`;
     return res.status(200).json({
       uploadUrl: `https://mock-r2-upload.aeternum.internal/${fileKey}?signature=valid_sig_dev`,
       fileUrl,
