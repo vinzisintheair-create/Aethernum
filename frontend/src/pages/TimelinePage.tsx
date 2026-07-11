@@ -114,11 +114,21 @@ function MemoryCard({ memory, spaceId, currentUser, formatDate }: MemoryCardProp
 
         {/* Media grid if files are attached */}
         {memory.media && memory.media.length > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-2">
+          <div className={`grid gap-4 mt-3 ${
+            memory.media.length === 1 
+              ? 'grid-cols-1 max-w-xl' 
+              : memory.media.length === 2 
+                ? 'grid-cols-2' 
+                : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4'
+          }`}>
             {memory.media.map((med) => (
               <div
                 key={med.id}
-                className="relative aspect-video rounded-lg overflow-hidden border border-vault-border bg-black/40 hover:border-accent/40 transition-all group cursor-pointer flex items-center justify-center"
+                className={`relative rounded-xl overflow-hidden border border-vault-border/50 bg-black/40 hover:border-accent/40 transition-all group cursor-pointer flex items-center justify-center ${
+                  memory.media.length === 1 
+                    ? 'aspect-[4/3] sm:aspect-[16/10] w-full' 
+                    : 'aspect-square sm:aspect-video'
+                }`}
               >
                 {med.fileType === 'IMAGE' ? (
                   <img
