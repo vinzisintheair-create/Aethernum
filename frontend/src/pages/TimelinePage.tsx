@@ -24,14 +24,14 @@ import {
   BookmarkCheck
 } from 'lucide-react';
 
-interface MemoryCardProps {
+export interface MemoryCardProps {
   memory: Memory;
   spaceId: string;
   currentUser?: { id: string; email: string };
   formatDate: (dateStr: string) => string;
 }
 
-function MemoryCard({ memory, spaceId, currentUser, formatDate }: MemoryCardProps) {
+export function MemoryCard({ memory, spaceId, currentUser, formatDate }: MemoryCardProps) {
   const [noteText, setNoteText] = useState('');
   const [showNoteForm, setShowNoteForm] = useState(false);
 

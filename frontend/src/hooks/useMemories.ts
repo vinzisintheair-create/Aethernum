@@ -194,3 +194,60 @@ export function useCurrentUser() {
     retry: false
   });
 }
+
+export interface Album {
+  id: string;
+  title: string;
+  description?: string | null;
+  coverImageUrl?: string | null;
+  createdAt: string;
+  count: number;
+}
+
+export interface AlbumDetails {
+  id: string;
+  title: string;
+  description?: string | null;
+  coverImageUrl?: string | null;
+  createdAt: string;
+  memories: Memory[];
+}
+
+export function useSpaceAlbums(spaceId: string) {
+  return useQuery({
+    queryKey: ['albums', spaceId],
+    queryFn: async () => {
+      const response = await api.get<{ albums: Album[] }>(`/spaces/${spaceId}/albums`);
+      return response.data.albums;
+    },
+    enabled: !!spaceId
+  });
+}
+
+export function useAlbumDetails(spaceId: string, albumId: string) {
+  return useQuery({
+    queryKey: ['album', spaceId, albumId],
+    queryFn: async () => {
+      const response = await api.get<{ album: AlbumDetails }>(`/spaces/${spaceId}/albums/${albumId}`);
+      return response.data.album;
+    },
+    enabled: !!spaceId && !!albumId
+  });
+}
+
+export function useCreateAlbum(spaceId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: { title: string; description?: string }) => {
+      const response = await api.post<{ message: string; album: Album }>(
+        `/spaces/${spaceId}/albums`,
+        payload
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['albums', spaceId] });
+    }
+  });
+}

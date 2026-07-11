@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Link, useParams } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useSpaceDetails } from './hooks/useMemories';
+import { useSpaceDetails, useSpaceAlbums, useAlbumDetails, useCreateAlbum, useCurrentUser } from './hooks/useMemories';
 import AuthLayout from './components/layout/AuthLayout';
 import SpaceLayout from './components/layout/SpaceLayout';
-import TimelinePage from './pages/TimelinePage';
+import TimelinePage, { MemoryCard } from './pages/TimelinePage';
 import { Card } from './components/ui/Card';
 import { Input } from './components/ui/Input';
 import { Button } from './components/ui/Button';
 import api from './utils/api';
-import { Plus, Users, Key } from 'lucide-react';
+import { Plus, Users, Key, Loader2, X } from 'lucide-react';
 
 // Instantiate TanStack Query client for caching state
 const queryClient = new QueryClient({
@@ -127,11 +127,45 @@ function RegisterPage() {
 /* ------------------- SPACE VAULT PAGES ------------------- */
 
 function AlbumsPage() {
-  const mockAlbums = [
-    { id: '1', title: 'Lineage Portraits', count: 24, desc: 'Original black and white photographs dating back to the late 19th century.' },
-    { id: '2', title: 'Homestead Architecture', count: 12, desc: 'Drawings, cabin footprints, and blueprints of the original family properties.' },
-    { id: '3', title: 'Letters & Transcripts', count: 8, desc: 'Digitized copies of handwritten mail, recipes, and legacy notes.' }
-  ];
+  const { spaceId } = useParams<{ spaceId: string }>();
+  const activeSpaceId = spaceId || '';
+
+  const [selectedAlbumId, setSelectedAlbumId] = useState<string | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newDesc, setNewDesc] = useState('');
+
+  const { data: albums, isLoading: loadingAlbums } = useSpaceAlbums(activeSpaceId);
+  const { data: currentUser } = useCurrentUser();
+  const createAlbumMutation = useCreateAlbum(activeSpaceId);
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTitle.trim()) return;
+
+    try {
+      await createAlbumMutation.mutateAsync({
+        title: newTitle.trim(),
+        description: newDesc.trim() || undefined
+      });
+      setNewTitle('');
+      setNewDesc('');
+      setIsFormOpen(false);
+    } catch (err) {
+      console.error('[Create Album Failed]:', err);
+    }
+  };
+
+  if (selectedAlbumId) {
+    return (
+      <AlbumDetailView
+        spaceId={activeSpaceId}
+        albumId={selectedAlbumId}
+        onBack={() => setSelectedAlbumId(null)}
+        currentUser={currentUser}
+      />
+    );
+  }
 
   return (
     <div className="flex flex-col gap-8">
@@ -140,26 +174,179 @@ function AlbumsPage() {
           <h1 className="text-3xl font-bold font-serif">Shared Albums</h1>
           <p className="text-sm text-vault-muted mt-1">Curated collections organizing group documents and legacy media.</p>
         </div>
-        <Button variant="primary" className="flex items-center gap-2 self-start sm:self-center">
-          <Plus className="w-4 h-4" /> Create Album
-        </Button>
+        {!isFormOpen && (
+          <Button variant="primary" onClick={() => setIsFormOpen(true)} className="flex items-center gap-2 self-start sm:self-center">
+            <Plus className="w-4 h-4" /> Create Album
+          </Button>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {mockAlbums.map((album) => (
-          <Card key={album.id} hoverEffect className="border border-vault-border/40 flex flex-col justify-between gap-6 cursor-pointer">
-            <div className="space-y-3">
-              <span className="text-4xl text-vault-muted select-none" role="img" aria-label="Folder icon">📁</span>
-              <h3 className="text-lg font-bold font-serif">{album.title}</h3>
-              <p className="text-xs text-vault-muted leading-relaxed">{album.desc}</p>
+      {isFormOpen && (
+        <Card className="border border-vault-border bg-vault-card/65 p-6 max-w-lg relative">
+          <button
+            onClick={() => setIsFormOpen(false)}
+            className="absolute top-4 right-4 text-vault-muted hover:text-white transition-all rounded p-1"
+            aria-label="Close form"
+          >
+            <X className="w-5 h-5" />
+          </button>
+          <h3 className="text-lg font-bold font-serif mb-4">Create Legacy Album</h3>
+          <form onSubmit={handleCreate} className="space-y-4">
+            <Input
+              label="Album Title (Required)"
+              placeholder="e.g. Lineage Portraits"
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              required
+            />
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold uppercase tracking-wider text-vault-muted select-none">
+                Description (Optional)
+              </label>
+              <textarea
+                rows={3}
+                placeholder="Describe the historical documents or media items contained in this folder..."
+                value={newDesc}
+                onChange={(e) => setNewDesc(e.target.value)}
+                className="w-full px-4 py-3 bg-primary-dark/40 border border-vault-border/60 rounded-lg text-sm text-vault-text focus:border-accent resize-none placeholder-vault-muted/40"
+              />
             </div>
-            <div className="flex justify-between items-center text-xs text-accent-light font-bold uppercase tracking-wider mt-4">
-              <span>{album.count} Assets</span>
-              <span>Open Album →</span>
+            <div className="flex gap-3 justify-end mt-2">
+              <Button type="button" variant="outline" onClick={() => setIsFormOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={createAlbumMutation.isPending}>
+                {createAlbumMutation.isPending ? 'Creating...' : 'Create Folder'}
+              </Button>
             </div>
-          </Card>
-        ))}
+          </form>
+        </Card>
+      )}
+
+      {loadingAlbums && (
+        <div className="flex flex-col items-center justify-center py-20 gap-3">
+          <Loader2 className="w-8 h-8 animate-spin text-accent-light" />
+          <p className="text-sm text-vault-muted">Retrieving legacy album collection folders...</p>
+        </div>
+      )}
+
+      {!loadingAlbums && (!albums || albums.length === 0) && (
+        <div className="text-center py-24 border border-dashed border-vault-border/50 rounded-2xl max-w-2xl mx-auto w-full p-8 flex flex-col items-center gap-4">
+          <span className="text-5xl select-none" role="img" aria-label="Empty folders">📁</span>
+          <div className="space-y-1">
+            <h4 className="text-lg font-bold text-white font-serif">No Albums Created Yet</h4>
+            <p className="text-xs text-vault-muted max-w-md leading-relaxed">
+              Create folder collections to group related records, architectural blueprints, or legacy photos.
+            </p>
+          </div>
+          <Button onClick={() => setIsFormOpen(true)} variant="primary" className="flex items-center gap-2 mt-2">
+            <Plus className="w-4 h-4" /> Create First Album
+          </Button>
+        </div>
+      )}
+
+      {!loadingAlbums && albums && albums.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {albums.map((album) => (
+            <Card
+              key={album.id}
+              hoverEffect
+              onClick={() => setSelectedAlbumId(album.id)}
+              className="border border-vault-border/40 flex flex-col justify-between gap-6 cursor-pointer"
+            >
+              <div className="space-y-3">
+                <span className="text-4xl text-vault-muted select-none" role="img" aria-label="Folder icon">📁</span>
+                <h3 className="text-lg font-bold font-serif">{album.title}</h3>
+                {album.description && <p className="text-xs text-vault-muted leading-relaxed">{album.description}</p>}
+              </div>
+              <div className="flex justify-between items-center text-xs text-accent-light font-bold uppercase tracking-wider mt-4">
+                <span>{album.count} Memories</span>
+                <span>Open Album →</span>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface AlbumDetailViewProps {
+  spaceId: string;
+  albumId: string;
+  onBack: () => void;
+  currentUser?: { id: string; email: string };
+}
+
+function AlbumDetailView({ spaceId, albumId, onBack, currentUser }: AlbumDetailViewProps) {
+  const { data: album, isLoading } = useAlbumDetails(spaceId, albumId);
+
+  const formatDate = (dateStr: string) => {
+    try {
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        timeZone: 'UTC'
+      });
+    } catch {
+      return dateStr;
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-4 border-b border-vault-border/30 pb-6">
+        <button
+          onClick={onBack}
+          className="text-xs text-vault-muted hover:text-white flex items-center gap-1.5 font-semibold w-fit transition-all"
+        >
+          ← Back to Albums
+        </button>
+        {album && (
+          <div className="mt-2">
+            <h1 className="text-3xl font-bold font-serif flex items-center gap-2.5">
+              <span role="img" aria-label="Folder icon">📁</span>
+              {album.title}
+            </h1>
+            {album.description && <p className="text-sm text-vault-muted mt-2 leading-relaxed">{album.description}</p>}
+          </div>
+        )}
       </div>
+
+      {isLoading && (
+        <div className="flex flex-col items-center justify-center py-20 gap-3">
+          <Loader2 className="w-8 h-8 animate-spin text-accent-light" />
+          <p className="text-sm text-vault-muted">Retrieving album files and stories...</p>
+        </div>
+      )}
+
+      {!isLoading && album && (!album.memories || album.memories.length === 0) && (
+        <div className="text-center py-20 border border-dashed border-vault-border/50 rounded-2xl max-w-xl mx-auto w-full p-8 flex flex-col items-center gap-4">
+          <span className="text-4xl select-none" role="img" aria-label="Document placeholder">📄</span>
+          <div className="space-y-1">
+            <h4 className="text-md font-bold text-white font-serif">Album is Empty</h4>
+            <p className="text-xs text-vault-muted max-w-sm leading-relaxed">
+              No memories are associated with this folder yet. When writing a memory on the timeline, check this album folder to link it!
+            </p>
+          </div>
+        </div>
+      )}
+
+      {!isLoading && album && album.memories && album.memories.length > 0 && (
+        <div className="flex flex-col gap-6">
+          {album.memories.map((memory) => (
+            <MemoryCard
+              key={memory.id}
+              memory={memory}
+              spaceId={spaceId}
+              currentUser={currentUser}
+              formatDate={formatDate}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

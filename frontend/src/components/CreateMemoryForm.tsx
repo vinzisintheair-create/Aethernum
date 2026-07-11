@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { useCreateMemory, useSpaceEvents, MediaItem } from '../hooks/useMemories';
+import { useCreateMemory, useSpaceEvents, useSpaceAlbums, MediaItem } from '../hooks/useMemories';
 import { Input } from './ui/Input';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
@@ -21,6 +21,7 @@ export default function CreateMemoryForm({ onSuccess }: CreateMemoryFormProps) {
   const [dateOccurred, setDateOccurred] = useState('');
   const [location, setLocation] = useState('');
   const [eventId, setEventId] = useState('');
+  const [selectedAlbumIds, setSelectedAlbumIds] = useState<string[]>([]);
   const [mediaList, setMediaList] = useState<MediaItem[]>([]);
   
   // Interface uploading states
@@ -29,6 +30,7 @@ export default function CreateMemoryForm({ onSuccess }: CreateMemoryFormProps) {
 
   // Queries & Mutations
   const { data: events } = useSpaceEvents(activeSpaceId);
+  const { data: albums } = useSpaceAlbums(activeSpaceId);
   const createMemoryMutation = useCreateMemory(activeSpaceId);
 
   // File Upload Handler (Simulating Cloudflare R2 Signatures)
@@ -107,7 +109,7 @@ export default function CreateMemoryForm({ onSuccess }: CreateMemoryFormProps) {
         location: location || undefined,
         eventId: eventId || null,
         media: mediaList,
-        albumIds: [] // Default empty for base sprint
+        albumIds: selectedAlbumIds
       });
 
       // Clear state
@@ -116,6 +118,7 @@ export default function CreateMemoryForm({ onSuccess }: CreateMemoryFormProps) {
       setDateOccurred('');
       setLocation('');
       setEventId('');
+      setSelectedAlbumIds([]);
       setMediaList([]);
 
       if (onSuccess) onSuccess();
@@ -175,6 +178,40 @@ export default function CreateMemoryForm({ onSuccess }: CreateMemoryFormProps) {
                 </option>
               ))}
             </select>
+          </div>
+        )}
+
+        {/* Organize into Album Folders checklist */}
+        {albums && albums.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-semibold uppercase tracking-wider text-vault-muted select-none">
+              Organize into Album Folders (Optional)
+            </label>
+            <div className="flex flex-wrap gap-2.5 mt-1">
+              {albums.map((album) => {
+                const isChecked = selectedAlbumIds.includes(album.id);
+                return (
+                  <button
+                    key={album.id}
+                    type="button"
+                    onClick={() => {
+                      if (isChecked) {
+                        setSelectedAlbumIds(selectedAlbumIds.filter((id) => id !== album.id));
+                      } else {
+                        setSelectedAlbumIds([...selectedAlbumIds, album.id]);
+                      }
+                    }}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                      isChecked
+                        ? 'bg-accent/20 border-accent text-green-300 font-bold'
+                        : 'bg-primary-dark/25 border-vault-border/60 text-vault-muted hover:border-vault-border hover:text-white'
+                    }`}
+                  >
+                    📁 {album.title}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
 
